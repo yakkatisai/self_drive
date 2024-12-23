@@ -1,0 +1,91 @@
+#include <ros.h>
+#include <std_msgs/Int32.h>
+#include "HardwareSerial.h"
+
+// Define the pins for the encoders
+const int encoderPinA1 = A1; // Encoder 1 Pin A
+const int encoderPinB1 = A2; // Encoder 1 Pin B
+const int encoderPinA2 = A3; // Encoder 2 Pin A
+const int encoderPinB2 = A4; // Encoder 2 Pin B
+
+// Variables to store the encoder values
+volatile int encoderValue1 = 0;
+volatile int encoderValue2 = 0;
+
+// HardwareSerial object for STM32
+HardwareSerial my_serial(PA2, PA3); // Set RX (PA3) and TX (PA2) pins for STM32 UART
+
+// ROS NodeHandle
+ros::NodeHandle nh;
+
+// ROS messages to publish encoder values
+std_msgs::Int32 encoder1_msg;
+std_msgs::Int32 encoder2_msg;
+
+// ROS Publishers
+ros::Publisher encoder1_pub("encoder1_value", &encoder1_msg);
+ros::Publisher encoder2_pub("encoder2_value", &encoder2_msg);
+
+void setup() {
+  // Initialize hardware serial communication for ROS and Serial Monitor
+  my_serial.begin(9600);      // STM32 UART communication with ROS
+  Serial.begin(9600);         // Debugging on Serial Monitor
+  nh.getHardware()->setBaud(9600); // Set baud rate for ROS communication
+  nh.initNode();              // Initialize ROS node
+
+  // Advertise ROS topics
+  nh.advertise(encoder1_pub);
+  nh.advertise(encoder2_pub);
+
+  // Set the encoder pins as inputs with pull-up resistors
+  pinMode(encoderPinA1, INPUT_PULLUP);
+  pinMode(encoderPinB1, INPUT_PULLUP);
+  pinMode(encoderPinA2, INPUT_PULLUP);
+  pinMode(encoderPinB2, INPUT_PULLUP);
+
+  // Attach interrupts to handle encoder signal changes
+  attachInterrupt(digitalPinToInterrupt(encoderPinA1), encoder1ISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(encoderPinA2), encoder2ISR, CHANGE);
+
+  // Print a startup message
+  Serial.println("STM32 Encoder Node Initialized");
+}
+
+void loop() {
+  // Publish encoder values to ROS topics
+  encoder1_msg.data = encoderValue1;
+  encoder2_msg.data = encoderValue2;
+
+  encoder1_pub.publish(&encoder1_msg);
+  encoder2_pub.publish(&encoder2_msg);
+
+  // Print encoder values to the Serial Monitor
+  Serial.print("Encoder 1: ");
+  Serial.println(encoderValue1);
+  Serial.print("Encoder 2: ");
+  Serial.println(encoderValue2);
+
+  // Handle ROS communication
+  nh.spinOnce();
+
+  // Delay for stability (adjust as needed)
+  delay(100);
+}
+
+// Interrupt Service Routine for Encoder 1
+void encoder1ISR() {
+  if (digitalRead(encoderPinA1) == digitalRead(encoderPinB1)) {
+    encoderValue1++;  // Clockwise rotation
+  } else {
+    encoderValue1--;  // Counter-clockwise rotation
+  }
+}
+
+// Interrupt Service Routine for Encoder 2
+void encoder2ISR() {
+  if (digitalRead(encoderPinA2) == digitalRead(encoderPinB2)) {
+    encoderValue2++;  // Clockwise rotation
+  } else {
+    encoderValue2--;  // Counter-clockwise rotation
+  }
+}
