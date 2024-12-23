@@ -1,0 +1,42 @@
+#include <ros.h>
+#include <std_msgs/String.h>
+#include "HardwareSerial.h"
+
+// Create a HardwareSerial object for STM32
+HardwareSerial my_serial(PA2, PA3);  // Set RX and TX pins
+
+ros::NodeHandle nh;
+
+// Create a publisher to send messages
+std_msgs::String msg;
+ros::Publisher pub("serial_topic", &msg);
+
+int counter = 0;  // Initialize a counter to keep track of the number
+
+void setup() {
+  // Initialize both Serial communication (for STM32 to ROS 2) and Serial Monitor
+  my_serial.begin(9600);  // Set baud rate for serial communication
+  Serial.begin(9600);     // Set baud rate for Serial Monitor
+  nh.getHardware()->setBaud(9600);  // Set ROS serial baud rate
+  nh.initNode();  // Initialize the ROS node
+  nh.advertise(pub);  // Advertise the "serial_topic" topic
+}
+
+void loop() {
+  // Increment the counter
+  counter++;
+
+  // Create a string message with the incrementing counter
+  String message = "Hello from STM32, counter: " + String(counter);
+
+  // Convert the String message to const char* and assign it to msg.data
+  msg.data = message.c_str();
+
+  pub.publish(&msg);  // Publish message to ROS 2 system
+
+  // Print the same message to the Serial Monitor
+  Serial.println(message);  // Directly print message
+  
+  nh.spinOnce();  // Let ROS 2 process messages
+  delay(0);  // 1-second delay (adjust as needed)
+}
