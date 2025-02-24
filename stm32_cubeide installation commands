@@ -1,0 +1,7 @@
+cd ~/Downloads
+unzip en.st-stm32cubeide_1.17.0_23558_20241125_2245_amd64.sh\(1\).zip
+
+chmod +x st-stm32cubeide_1.17.0_23558_20241125_2245_amd64.sh
+./st-stm32cubeide_1.17.0_23558_20241125_2245_amd64.sh
+# ubuntu distrubution
+sudo apt install libncurses5
